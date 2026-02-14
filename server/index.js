@@ -1,29 +1,51 @@
 require("dotenv").config();
 const express = require("express");
-// Trigger restart for .env update
 const multer = require("multer");
+const cors = require("cors");
+const path = require("path");
 
 const app = express();
-const cors = require("cors");
 
-app.use(cors());
+// UPDATED: Add your new custom domain to CORS
+app.use(
+  cors({
+    origin: [
+      "https://glosmax.in", // ← ADD THIS (your new domain)
+      "https://www.glosmax.in", // ← ADD THIS (www version)
+      "https://glosmax.netlify.app", // Keep this (Netlify URL still works)
+      "http://localhost:5173", // Keep for local development
+      "http://localhost:3000", // Keep for local development
+    ],
+    credentials: true,
+  }),
+);
+
+app.use(express.json());
+
+// Serve uploaded images
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Routes
 const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
+const orderRoutes = require("./routes/orderRoutes");
+const cartRoutes = require("./routes/cartRoutes");
 
-app.use(express.json());
 app.use("/auth", authRoutes);
 app.use("/products", productRoutes);
 app.use("/reviews", reviewRoutes);
-const orderRoutes = require("./routes/orderRoutes");
 app.use("/orders", orderRoutes);
-
-const cartRoutes = require("./routes/cartRoutes");
 app.use("/cart", cartRoutes);
 
-// Serve uploaded images
-const path = require("path");
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Health check endpoints
+app.get("/", (req, res) => {
+  res.json({ status: "Server is running!", timestamp: new Date() });
+});
+
+app.get("/health", (req, res) => {
+  res.json({ status: "OK" });
+});
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -36,7 +58,8 @@ app.use((err, req, res, next) => {
     .json({ success: false, error: err.message || "Something went wrong!" });
 });
 
+// Listen on 0.0.0.0 for Hostinger
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
